@@ -1,6 +1,8 @@
 # Oxford 3000
 Bu depo Oxford 3000 kelime listesinin seviye ve sözcük türüne göre ayrıştırılmış listelerini tutar. Toplam 2988 benzersiz kelime içerir. Fakat listelerde aynı kelime farklı sözcük türleri (parts of speech) için tekrarlanır. Bunun sebebi kelimelerin farklı sözcük türleri için farklı anlamları olmasıdır.
 
+> Kelimelerin Türkçe çevirileri henüz yapılmamıştır.
+
 **_Örnek:_**
 
 |Word|Parts of Speech|CEFR Level|Translate (TR)             |
