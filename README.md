@@ -16,7 +16,7 @@ Farklı amaçlarla kulanılabilmesi için dosyalar farklı formatlara dönüşt�
 
 * **American_Oxford_3000_CEFR.pdf:** Oxford 3000 orijinal dosyası
 * **oxford3000.db:** SQLite veritabanı
-* **oxford3000.ods:** LibreOffice hesap tablosu. İstenirse Excel için XLSX formatına çevirilebilir.
+* **oxford3000.xlsx:** Office Open XML Spreadsheet (Excel Hesap Tablosu).
 * **words.txt:** Benzersiz (tekrarlanmayan) kelime listesi
 
 ## Araçlar
