@@ -1,8 +1,6 @@
 # Oxford 3000
 Bu depo Oxford 3000 kelime listesinin seviye ve sözcük türüne göre ayrıştırılmış listelerini tutar. Toplam 2988 benzersiz kelime içerir. Fakat listelerde aynı kelime farklı sözcük türleri (parts of speech) için tekrarlanır. Bunun sebebi kelimelerin farklı sözcük türleri için farklı anlamları olmasıdır.
 
-> **Note:** If someone translates words to another language, I can add to XLSX and SQLite 
-
 **_Örnek:_**
 
 |Word|Parts of Speech|CEFR Level|Translate (TR)             |
@@ -10,6 +8,10 @@ Bu depo Oxford 3000 kelime listesinin seviye ve sözcük türüne göre ayrışt
 |key |            n. |      A1  | anahtar                   |
 |key |          adj. |      A1  | en önemli, temel, kilit   |
 |key |            v. |      B1  | (klavyede) yazmak, girmek |
+
+Ayrıca, veritabanı her kelime için 3'er adet örnek cümle ve her CEFR seviyesi için 5'er adet okuma metni de içerir.
+
+> **Note:** If someone translates words to another language, I can add to XLSX and SQLite
 
 ## Dosyalar
 Farklı amaçlarla kulanılabilmesi için dosyalar farklı formatlara dönüştürülmüştür.
