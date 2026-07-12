@@ -1,3 +1,16 @@
 sounds/
 *.xlsx#
 temp.txt
+
+.env
+.env.local
+
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+data/oxford3000.csv
+data/oxford3000.xlsx
+data/oxford3000.db
+data/raw/American_Oxford_3000_CEFR.pdf
