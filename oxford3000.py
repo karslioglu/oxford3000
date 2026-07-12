@@ -17,6 +17,11 @@ BASE_DIR = Path(__file__).resolve().parent
 ENV_PATH = BASE_DIR / ".env"
 load_dotenv(dotenv_path=ENV_PATH)
 API_KEY = os.getenv("GEMINI_API_KEY")
+# .env.example'daki yer tutucu ("<GEMINI_API_KEY>") .env'e olduğu gibi
+# kopyalanıp unutulmuş olabilir; bu durumda boş değilmiş gibi görünüp API'ye
+# geçersiz anahtarla istek atılmasın diye "ayarlanmamış" sayıyoruz.
+if API_KEY and API_KEY.strip() == "<GEMINI_API_KEY>":
+    API_KEY = None
 
 PDF_URL = "https://www.oxfordlearnersdictionaries.com/external/pdf/wordlists/oxford-3000-5000/American_Oxford_3000.pdf"
 PDF_PATH = BASE_DIR / "data" / "raw" / "American_Oxford_3000_CEFR.pdf"

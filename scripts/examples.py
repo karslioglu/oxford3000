@@ -103,6 +103,15 @@ def main(api_key, db_path):
                 retry_count += 1
                 continue
 
+            except exceptions.GoogleAPIError as e:
+                # Geçersiz/yetkisiz API anahtarı gibi hatalar her kelimede
+                # aynı şekilde başarısız olur; kelime kelime tekrar tekrar
+                # denemek yerine temiz bir mesajla hemen durduruyoruz.
+                print(f"\n❌ API hatası: {e}")
+                print("   'GEMINI_API_KEY' değerinin doğru olduğundan emin olun.")
+                conn.close()
+                return
+
             except Exception as e:
                 retry_count += 1
                 if retry_count > 3:
