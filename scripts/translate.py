@@ -3,6 +3,12 @@ import math
 import sqlite3
 import time
 
+# Sabit bir sürüme (ör. "gemini-2.0-flash") değil kayan bir takma ada
+# bağlanıyoruz; sabit sürümler zamanla "artık kullanılamıyor" hatası
+# vermeye başlıyor (bu tam olarak başımıza geldi), takma ad Google
+# tarafında güncel bir modele yönlendirilmeye devam ediyor.
+MODEL_NAME = "gemini-flash-latest"
+
 BATCH_SIZE = 30
 
 
@@ -18,7 +24,7 @@ def clean_json_text(text):
     return text.strip()
 
 
-def translate_batch(model, items):
+def translate_batch(client, items):
     """Bir grup kelimeyi tek seferde API'ye gönderip Türkçe çeviri ister."""
     prompt = (
         "You are a linguistic expert building a dictionary database. Translate the "
@@ -35,9 +41,9 @@ def translate_batch(model, items):
         f"Input Data: {json.dumps(items)}"
     )
 
-    # ResourceExhausted (kota) hatası kasıtlı olarak burada yutulmuyor;
-    # main()'daki yeniden deneme döngüsünün onu yakalayıp beklemesi gerekiyor.
-    response = model.generate_content(prompt)
+    # Kota/geçersiz-anahtar hataları kasıtlı olarak burada yutulmuyor;
+    # main()'daki yeniden deneme döngüsünün onları yakalaması gerekiyor.
+    response = client.models.generate_content(model=MODEL_NAME, contents=prompt)
     if not response.text:
         return None
     return json.loads(clean_json_text(response.text))
@@ -45,10 +51,10 @@ def translate_batch(model, items):
 
 def main(api_key, db_path):
     try:
-        import google.generativeai as genai
-        from google.api_core import exceptions
+        from google import genai
+        from google.genai import errors
     except ImportError:
-        print("❌ 'google-generativeai' kütüphanesi eksik.")
+        print("❌ 'google-genai' kütüphanesi eksik.")
         return
 
     if not db_path.exists():
@@ -56,8 +62,7 @@ def main(api_key, db_path):
         print("   Önce 'oxford3000.py sqlite' komutuyla oluşturun.")
         return
 
-    genai.configure(api_key=api_key)
-    model = genai.GenerativeModel("gemini-2.0-flash")
+    client = genai.Client(api_key=api_key)
 
     conn = sqlite3.connect(str(db_path))
     cursor = conn.cursor()
@@ -93,24 +98,37 @@ def main(api_key, db_path):
         retry_count = 0
         while True:
             try:
-                translations = translate_batch(model, batch)
+                translations = translate_batch(client, batch)
                 break
-            except exceptions.ResourceExhausted:
-                wait_time = 70 + (retry_count * 10)
-                print(f"⏳ kota doldu, {wait_time}s bekleniyor...", end=" ")
-                time.sleep(wait_time)
-                retry_count += 1
-                if retry_count > 3:
-                    translations = None
-                    break
-            except exceptions.GoogleAPIError as e:
-                # Geçersiz/yetkisiz API anahtarı gibi hatalar her batch'te
-                # aynı şekilde başarısız olur; tekrar tekrar denemek yerine
-                # temiz bir mesajla hemen durduruyoruz.
-                print(f"\n❌ API hatası: {e}")
-                print("   'GEMINI_API_KEY' değerinin doğru olduğundan emin olun.")
+            except errors.ClientError as e:
+                if e.code == 429:
+                    # Kota doldu — bekleyip tekrar dene.
+                    wait_time = 70 + (retry_count * 10)
+                    print(f"⏳ kota doldu, {wait_time}s bekleniyor...", end=" ")
+                    time.sleep(wait_time)
+                    retry_count += 1
+                    if retry_count > 3:
+                        translations = None
+                        break
+                    continue
+                # Geçersiz anahtar, artık kullanılamayan model vb. hatalar her
+                # batch'te aynı şekilde başarısız olur; tekrar tekrar denemek
+                # yerine temiz bir mesajla hemen durduruyoruz.
+                print(f"\n❌ API hatası: {e.message}")
+                print("   'GEMINI_API_KEY' değerinin doğru ve modelin ("
+                      f"{MODEL_NAME}) kullanılabilir olduğundan emin olun.")
                 conn.close()
                 return
+            except errors.ServerError as e:
+                # Geçici bir sunucu tarafı hata olabilir, birkaç kez dene.
+                retry_count += 1
+                if retry_count > 3:
+                    print(f"\n⛔ Sunucu hatası devam ediyor, durduruluyor: {e}")
+                    conn.close()
+                    return
+                print(f"\n❌ Sunucu hatası: {e}. 10s bekleyip tekrar denenecek.", end=" ")
+                time.sleep(10)
+                continue
 
         if translations:
             update_count = 0

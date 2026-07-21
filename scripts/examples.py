@@ -2,6 +2,9 @@ import json
 import sqlite3
 import time
 
+# translate.py ile aynı gerekçe: sabit sürüm değil kayan takma ad.
+MODEL_NAME = "gemini-flash-latest"
+
 
 def clean_json_text(text):
     text = text.strip()
@@ -17,10 +20,10 @@ def clean_json_text(text):
 
 def main(api_key, db_path):
     try:
-        import google.generativeai as genai
-        from google.api_core import exceptions
+        from google import genai
+        from google.genai import errors
     except ImportError:
-        print("❌ 'google-generativeai' kütüphanesi eksik.")
+        print("❌ 'google-genai' kütüphanesi eksik.")
         return
 
     if not db_path.exists():
@@ -28,8 +31,7 @@ def main(api_key, db_path):
         print("   Önce 'oxford3000.py sqlite' komutuyla oluşturun.")
         return
 
-    genai.configure(api_key=api_key)
-    model = genai.GenerativeModel("gemini-2.0-flash")
+    client = genai.Client(api_key=api_key)
 
     conn = sqlite3.connect(str(db_path))
     cursor = conn.cursor()
@@ -69,7 +71,7 @@ def main(api_key, db_path):
         retry_count = 0
         while True:
             try:
-                response = model.generate_content(prompt)
+                response = client.models.generate_content(model=MODEL_NAME, contents=prompt)
 
                 if not response.text:
                     print(f"[{index}/{total}] ❌ Boş yanıt: {word_text!r}. Atlanıyor.")
@@ -96,28 +98,28 @@ def main(api_key, db_path):
                 print(f"[{index}/{total}] %{percent:.1f} - Eklendi: {word_text} ({pos}, {cefr})")
                 break
 
-            except exceptions.ResourceExhausted:
-                wait_time = 70 + (retry_count * 10)
-                print(f"⏳ Kota doldu ({word_text}). {wait_time}s bekleniyor... (deneme {retry_count + 1})")
-                time.sleep(wait_time)
-                retry_count += 1
-                continue
-
-            except exceptions.GoogleAPIError as e:
-                # Geçersiz/yetkisiz API anahtarı gibi hatalar her kelimede
-                # aynı şekilde başarısız olur; kelime kelime tekrar tekrar
+            except errors.ClientError as e:
+                if e.code == 429:
+                    wait_time = 70 + (retry_count * 10)
+                    print(f"⏳ Kota doldu ({word_text}). {wait_time}s bekleniyor... (deneme {retry_count + 1})")
+                    time.sleep(wait_time)
+                    retry_count += 1
+                    continue
+                # Geçersiz anahtar, artık kullanılamayan model vb. hatalar her
+                # kelimede aynı şekilde başarısız olur; kelime kelime tekrar
                 # denemek yerine temiz bir mesajla hemen durduruyoruz.
-                print(f"\n❌ API hatası: {e}")
-                print("   'GEMINI_API_KEY' değerinin doğru olduğundan emin olun.")
+                print(f"\n❌ API hatası: {e.message}")
+                print("   'GEMINI_API_KEY' değerinin doğru ve modelin ("
+                      f"{MODEL_NAME}) kullanılabilir olduğundan emin olun.")
                 conn.close()
                 return
 
-            except Exception as e:
+            except errors.ServerError as e:
                 retry_count += 1
                 if retry_count > 3:
                     print(f"[{index}/{total}] ⛔ {word_text!r} atlanıyor: {e}")
                     break
-                print(f"[{index}/{total}] ❌ Hata ({word_text}): {e}. 10s bekleyip tekrar denenecek.")
+                print(f"[{index}/{total}] ❌ Sunucu hatası ({word_text}): {e}. 10s bekleyip tekrar denenecek.")
                 time.sleep(10)
                 continue
 
