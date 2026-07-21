@@ -1,25 +1,23 @@
 import csv
 
-from scripts import pdf_parser
+from scripts import db_reader
 
 
-def main(pdf_path, csv_path):
-    if not pdf_path.exists():
-        print(f"❌ PDF bulunamadı: {pdf_path}")
-        print("   Önce 'oxford3000.py download' komutuyla indirin.")
+def main(db_path, csv_path):
+    if not db_path.exists():
+        print(f"❌ Veritabanı bulunamadı: {db_path}")
+        print("   Önce 'oxford3000.py sqlite' komutuyla oluşturun.")
         return
 
-    print(f"📖 PDF okunuyor: {pdf_path}")
-    rows = pdf_parser.parse_pdf(pdf_path)
-
+    rows = db_reader.fetch_words(db_path)
     if not rows:
-        print("❌ Hiçbir satır ayrıştırılamadı.")
+        print("❌ Veritabanında hiç kelime yok.")
         return
 
     csv_path.parent.mkdir(parents=True, exist_ok=True)
     with open(csv_path, "w", newline="", encoding="utf-8") as f:
         writer = csv.writer(f)
-        writer.writerow(["word", "parts_of_speech", "cefr"])
+        writer.writerow(["word", "parts_of_speech", "cefr", "translate_tr"])
         writer.writerows(rows)
 
     unique_words = len({r[0] for r in rows})

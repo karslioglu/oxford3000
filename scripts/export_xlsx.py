@@ -1,19 +1,17 @@
 from openpyxl import Workbook
 
-from scripts import pdf_parser
+from scripts import db_reader
 
 
-def main(pdf_path, xlsx_path):
-    if not pdf_path.exists():
-        print(f"❌ PDF bulunamadı: {pdf_path}")
-        print("   Önce 'oxford3000.py download' komutuyla indirin.")
+def main(db_path, xlsx_path):
+    if not db_path.exists():
+        print(f"❌ Veritabanı bulunamadı: {db_path}")
+        print("   Önce 'oxford3000.py sqlite' komutuyla oluşturun.")
         return
 
-    print(f"📖 PDF okunuyor: {pdf_path}")
-    rows = pdf_parser.parse_pdf(pdf_path)
-
+    rows = db_reader.fetch_words(db_path)
     if not rows:
-        print("❌ Hiçbir satır ayrıştırılamadı.")
+        print("❌ Veritabanında hiç kelime yok.")
         return
 
     xlsx_path.parent.mkdir(parents=True, exist_ok=True)
@@ -21,7 +19,7 @@ def main(pdf_path, xlsx_path):
     wb = Workbook()
     ws = wb.active
     ws.title = "Oxford 3000"
-    ws.append(["word", "parts_of_speech", "cefr"])
+    ws.append(["word", "parts_of_speech", "cefr", "translate_tr"])
     for row in rows:
         ws.append(row)
     wb.save(xlsx_path)

@@ -4,7 +4,7 @@ from collections import Counter
 
 import requests
 
-from scripts import pdf_parser
+from scripts import db_reader
 
 API_URL = "https://api.soundoftext.com/sounds"
 
@@ -86,22 +86,22 @@ def build_filename(word, pos, ambiguous):
     return base
 
 
-def main(pdf_path, output_dir):
-    if not pdf_path.exists():
-        print(f"❌ PDF bulunamadı: {pdf_path}")
-        print("   Önce 'oxford3000.py download' komutuyla indirin.")
+def main(db_path, output_dir):
+    if not db_path.exists():
+        print(f"❌ Veritabanı bulunamadı: {db_path}")
+        print("   Önce 'oxford3000.py sqlite' komutuyla oluşturun.")
         return
 
-    rows = pdf_parser.parse_pdf(pdf_path)
+    rows = db_reader.fetch_words(db_path)
     if not rows:
-        print("❌ Hiçbir satır ayrıştırılamadı.")
+        print("❌ Veritabanında hiç kelime yok.")
         return
 
     # Benzersizlik anahtarı sadece "word" değil (word, pos) olmalı: aynı
     # yazılışa sahip ama farklı sözcük türüne (dolayısıyla muhtemelen farklı
     # telaffuza) sahip kelimeler var. Sadece word'e göre tekilleştirseydik bu
     # çiftlerden biri hiç seslendirilmezdi.
-    items = sorted({(word, pos) for word, pos, _ in rows})
+    items = sorted({(word, pos) for word, pos, _cefr, _tr in rows})
     pos_counts = Counter(word for word, _ in items)
 
     output_dir.mkdir(parents=True, exist_ok=True)
